@@ -1,0 +1,627 @@
+# EXPAT STARTER PACK — DEFINITIVE FINAL PLAN
+# Part 1 of 3: Architecture, Wizard, Checklist Engine, Database
+
+---
+
+## PROJECT IDENTITY
+
+- **Name:** Expat Starter Pack
+- **Domain:** expatstarterpack.com
+- **Purpose:** Personalized expat integration assistant that generates a custom checklist of what to do on arrival based on WHO the user is, WHERE they come from, and WHERE they are going
+- **Monetization:** $2 one-time payment via Stripe (website only) to unlock premium content
+- **Mobile:** Free Android app via Capacitor 8, premium unlocked by logging in with web-purchased account
+
+---
+
+## TECH STACK
+
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| Framework | Next.js (App Router) | 15.x | SSR for SEO, static export for Capacitor |
+| Language | TypeScript | 5.x | Type safety everywhere |
+| Styling | Tailwind CSS | 4.x | Utility-first CSS |
+| Components | shadcn/ui | latest | Consistent UI primitives |
+| State (client) | Zustand | latest | Wizard data + guest persistence via localStorage |
+| Mobile | Capacitor | 8.x | Wrap static export into Android APK |
+| Auth + DB | Supabase | 2.x | Auth, user profiles, progress tracking |
+| Payments | Stripe | latest JS SDK | One-time $2 payment (web only) |
+| Search | Fuse.js | latest | Client-side fuzzy search on countries, tasks, services |
+| Icons | lucide-react | latest | Consistent icon system |
+| Flags | country-flag-icons | latest | SVG country flags |
+| Fonts | Fraunces + Outfit + IBM Plex Mono | via next/font | Editorial headings, clean body, mono for data |
+| Email | Resend | latest | Deadline reminder emails |
+| Analytics | Vercel Analytics | latest | Privacy-friendly analytics |
+| Hosting (web) | Vercel | — | Production deployment |
+| Hosting (dev) | Bolt.new | — | Development and prototyping |
+
+---
+
+## THE ONBOARDING WIZARD (5 Steps)
+
+### Why the Wizard Matters
+A Dutch person moving to Germany has fundamentally different rights and tasks than an Indian person moving to Germany:
+- **EU → EU:** No visa needed, free movement, automatic right to work, mutual healthcare recognition (EHIC), driver's license valid, no integration course required (usually)
+- **Non-EU → EU:** Visa required, work permit needed, Blue Card possible, integration course often mandatory, driver's license conversion may require full test, health insurance proof needed for visa
+
+The wizard captures this and the checklist engine uses it.
+
+### Step 1: Where Are You Moving?
+```
+Screen title: "Where are you moving to?"
+
+Fields:
+- Destination country: searchable dropdown with flags (all 195 countries)
+- Arrival date: date picker (default: today)
+- "I have already arrived" toggle
+```
+
+### Step 2: Where Are You From?
+```
+Screen title: "Where are you coming from?"
+
+Fields:
+- Home country / nationality: searchable dropdown with flags
+- "I have dual citizenship" toggle → if yes, show second nationality dropdown
+- This determines:
+  * EU citizen vs non-EU citizen (automatic detection from country)
+  * Visa requirements
+  * Tax treaty applicability
+  * Pension transfer options
+  * Driver's license conversion rules
+  * Language exemptions for integration courses
+```
+
+### Step 3: About You
+```
+Screen title: "Tell us about yourself"
+
+Fields:
+- Your situation:
+  ○ Single adult (18-64)
+  ○ Couple (no children)
+  ○ Family with children
+  ○ Single parent with children
+  ○ Retired / Pensioner (65+)
+  ○ Student (under 25)
+  ○ Minor (under 18, moving with family)
+
+Conditional fields:
+- IF family/single-parent:
+  * Number of children: 1-6+ (stepper)
+  * Age of each child: dropdown (0-1, 2-3, 4-5, 6-10, 11-14, 15-17)
+  * School preference: Local school / International school / Undecided
+
+- IF pensioner:
+  * "Do you receive a pension from [home country]?" Yes/No
+  * Pension type: State pension / Private pension / Both
+
+- IF student:
+  * "Are you enrolling at a university in [destination]?" Yes/No
+```
+
+### Step 4: Employment & Driving
+```
+Screen title: "Your work and driving situation"
+
+Fields:
+- Employment situation:
+  ○ I have a job offer / employment contract
+  ○ I am a remote worker / digital nomad
+  ○ I am self-employed / freelancer
+  ○ I plan to start a business
+  ○ I am looking for a job
+  ○ I am a student (already selected)
+  ○ I am retired (already selected)
+  ○ Not working / Homemaker
+
+- "Do you have a driving license?" Yes / No
+  * IF yes: "From which country?" (auto-filled with home country, editable)
+
+- "Are you bringing a pet?" Yes / No
+  * IF yes: Dog / Cat / Other
+```
+
+### Step 5: Your Priorities (Optional)
+```
+Screen title: "What concerns you most?" (multi-select, optional)
+
+Options:
+☐ Understanding the bureaucracy and paperwork
+☐ Finding affordable housing
+☐ Health insurance and medical care
+☐ Language barrier
+☐ Finding a school for my children
+☐ Taxes and financial planning
+☐ Finding a job
+☐ Starting a business or freelancing
+☐ Getting my pension transferred
+☐ Making friends and integrating
+☐ Understanding my legal rights
+
+[Skip →] or [Finish →]
+```
+
+### After Wizard Completion
+```
+Success screen:
+"✅ Your personalized checklist is ready!
+We've created a custom integration guide for [🇩🇪 Germany] based on your profile.
+[X] tasks to complete | [Y] are time-sensitive
+
+[Go to My Checklist →]"
+```
+
+### Wizard Data Storage
+
+**Zustand Store (persisted to localStorage for guests):**
+```typescript
+// src/stores/userProfileStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface UserProfile {
+  // Step 1
+  destinationCountry: string;      // slug: "germany"
+  arrivalDate: string;              // ISO date
+  hasArrived: boolean;
+
+  // Step 2
+  homeCountry: string;              // slug: "netherlands"
+  nationality: string;              // ISO code: "NL"
+  isEuCitizen: boolean;             // auto-calculated
+  hasDualCitizenship: boolean;
+  secondNationality?: string;
+
+  // Step 3
+  situation: UserSituation;
+  numberOfChildren: number;
+  childrenAges: number[];
+  schoolPreference: 'local' | 'international' | 'undecided';
+  hasPension: boolean;
+  pensionType?: 'state' | 'private' | 'both';
+  isUniversityStudent: boolean;
+
+  // Step 4
+  employmentSituation: EmploymentType;
+  hasDriversLicense: boolean;
+  driverLicenseCountry?: string;
+  hasPet: boolean;
+  petType?: 'dog' | 'cat' | 'other';
+
+  // Step 5
+  priorities: string[];
+
+  // Meta
+  wizardCompleted: boolean;
+  wizardCompletedAt?: string;
+}
+
+type UserSituation = 'single' | 'couple' | 'family' | 'single-parent' | 'pensioner' | 'student' | 'minor';
+
+type EmploymentType = 'employed' | 'remote-worker' | 'freelancer' | 'starting-business' | 'job-seeker' | 'student' | 'retired' | 'not-working';
+```
+
+### EU Citizenship Detection
+```typescript
+// src/lib/utils/eu.ts
+const EU_COUNTRIES = [
+  'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR',
+  'DE','GR','HU','IE','IT','LV','LT','LU','MT','NL',
+  'PL','PT','RO','SK','SI','ES','SE'
+];
+const EEA_COUNTRIES = [...EU_COUNTRIES, 'IS', 'LI', 'NO'];
+const EFTA_COUNTRIES = ['IS', 'LI', 'NO', 'CH'];
+
+export function isEuCitizen(isoCode: string): boolean {
+  return EU_COUNTRIES.includes(isoCode.toUpperCase());
+}
+export function isEeaCitizen(isoCode: string): boolean {
+  return EEA_COUNTRIES.includes(isoCode.toUpperCase());
+}
+export function hasFreeMoveRight(from: string, to: string): boolean {
+  // EU/EEA citizen moving to EU/EEA country = free movement
+  return isEeaCitizen(from) && isEeaCitizen(to);
+}
+```
+
+---
+
+## THE DYNAMIC CHECKLIST ENGINE
+
+### Architecture
+The checklist is NOT a flat list. It is generated by combining:
+1. Country-specific task data (from TypeScript files)
+2. User profile (from Zustand store)
+3. Origin-destination rules (EU vs non-EU, visa requirements)
+
+### Task Data Structure
+```typescript
+interface ChecklistTask {
+  id: string;
+  title: string;
+  description: string;
+  localInstitutionName?: string;     // "Einwohnermeldeamt", "Gemeente", "Mairie"
+  localInstitutionNameTranslation?: string; // "Town Hall Registration Office"
+  whereToGo?: string;
+  documentsNeeded: string[];
+  estimatedTime?: string;
+  estimatedCost?: string;
+  deadlineDescription?: string;
+  deadlineDays?: number;             // from arrival date
+  riskIfMissed?: string;
+  category: TaskCategory;
+  isMandatory: boolean;              // legally required vs recommended
+  isPremium: boolean;                // behind $2 paywall
+  sortOrder: number;
+  tips?: string;
+  externalLinks?: ExternalLink[];
+  notificationText?: string;
+
+  // AUDIENCE TARGETING
+  audience: TaskAudience[];          // array — task can match multiple audiences
+  originRule?: OriginRule;           // EU-specific or country-specific conditions
+}
+
+type TaskAudience =
+  | 'everyone'
+  | 'family'
+  | 'family-toddler'       // children 0-3
+  | 'family-preschool'     // children 4-5
+  | 'family-school'        // children 6-14
+  | 'family-teen'          // children 15-17
+  | 'pensioner'
+  | 'student'
+  | 'driver'
+  | 'pet-owner'
+  | 'pet-dog'              // dog-specific (taxes, breed rules)
+  | 'employed'
+  | 'remote-worker'
+  | 'freelancer'
+  | 'starting-business'
+  | 'job-seeker'
+  | 'not-working';
+
+interface OriginRule {
+  type: 'eu-only' | 'non-eu-only' | 'specific-countries' | 'all';
+  countries?: string[];              // ISO codes if type is 'specific-countries'
+  description?: string;              // "Only for non-EU citizens"
+}
+```
+
+### The Generator Function
+```typescript
+// src/lib/checklist/generator.ts
+
+export function generateChecklist(
+  country: Country,
+  profile: UserProfile
+): ChecklistTask[] {
+  const allTasks = country.tasks;
+  const hasFreeMoveRight = isEeaCitizen(profile.nationality) &&
+                            isEeaCitizen(country.isoCode);
+
+  return allTasks.filter(task => {
+    // 1. Check origin rule
+    if (task.originRule) {
+      switch (task.originRule.type) {
+        case 'eu-only':
+          if (!hasFreeMoveRight) return false;
+          break;
+        case 'non-eu-only':
+          if (hasFreeMoveRight) return false;
+          break;
+        case 'specific-countries':
+          if (!task.originRule.countries?.includes(profile.nationality)) return false;
+          break;
+      }
+    }
+
+    // 2. Check audience match
+    if (task.audience.includes('everyone')) return true;
+
+    const matchesAudience = task.audience.some(aud => {
+      switch (aud) {
+        case 'family':
+          return ['family','single-parent'].includes(profile.situation);
+        case 'family-toddler':
+          return profile.childrenAges?.some(a => a <= 3);
+        case 'family-preschool':
+          return profile.childrenAges?.some(a => a >= 4 && a <= 5);
+        case 'family-school':
+          return profile.childrenAges?.some(a => a >= 6 && a <= 14);
+        case 'family-teen':
+          return profile.childrenAges?.some(a => a >= 15);
+        case 'pensioner':
+          return profile.situation === 'pensioner';
+        case 'student':
+          return profile.situation === 'student';
+        case 'driver':
+          return profile.hasDriversLicense;
+        case 'pet-owner':
+          return profile.hasPet;
+        case 'pet-dog':
+          return profile.hasPet && profile.petType === 'dog';
+        case 'employed':
+          return profile.employmentSituation === 'employed';
+        case 'remote-worker':
+          return profile.employmentSituation === 'remote-worker';
+        case 'freelancer':
+          return ['freelancer','starting-business'].includes(profile.employmentSituation);
+        case 'starting-business':
+          return profile.employmentSituation === 'starting-business';
+        case 'job-seeker':
+          return profile.employmentSituation === 'job-seeker';
+        case 'not-working':
+          return profile.employmentSituation === 'not-working';
+        default:
+          return false;
+      }
+    });
+
+    return matchesAudience;
+  }).sort((a, b) => {
+    // Sort: mandatory first, then by deadline, then by sortOrder
+    if (a.isMandatory !== b.isMandatory) return a.isMandatory ? -1 : 1;
+    if (a.deadlineDays && b.deadlineDays) return a.deadlineDays - b.deadlineDays;
+    if (a.deadlineDays && !b.deadlineDays) return -1;
+    return a.sortOrder - b.sortOrder;
+  });
+}
+```
+
+### Example: Tasks for Germany with Origin Rules
+
+```typescript
+// Inside germany.ts tasks array:
+
+// EVERYONE regardless of origin:
+{
+  id: 'de-register-address',
+  title: 'Register your address (Anmeldung)',
+  localInstitutionName: 'Einwohnermeldeamt',
+  localInstitutionNameTranslation: 'Residents Registration Office',
+  description: 'You must register your German address within 14 days of moving in. This is legally required for all residents.',
+  documentsNeeded: ['Passport or ID card', 'Rental contract (Mietvertrag)', 'Wohnungsgeberbestätigung (landlord confirmation form)'],
+  deadlineDays: 14,
+  riskIfMissed: 'Fine up to €500. Cannot open bank account, get tax ID, or complete most other tasks without this.',
+  category: 'registration',
+  isMandatory: true,
+  isPremium: false,
+  audience: ['everyone'],
+  originRule: { type: 'all' },
+  sortOrder: 1,
+},
+
+// NON-EU ONLY:
+{
+  id: 'de-residence-permit',
+  title: 'Apply for residence permit (Aufenthaltstitel)',
+  localInstitutionName: 'Ausländerbehörde',
+  localInstitutionNameTranslation: 'Foreigners Authority / Immigration Office',
+  description: 'Non-EU citizens must apply for a residence permit within 90 days. Bring your visa, passport, proof of employment, health insurance, and accommodation.',
+  deadlineDays: 90,
+  riskIfMissed: 'Illegal stay. Risk of deportation and ban on future entry.',
+  category: 'registration',
+  isMandatory: true,
+  isPremium: false,
+  audience: ['everyone'],
+  originRule: { type: 'non-eu-only' },
+  sortOrder: 2,
+},
+
+// EU ONLY:
+{
+  id: 'de-eu-freizuegigkeit',
+  title: 'Register EU right of residence (Freizügigkeitsbescheinigung)',
+  localInstitutionName: 'Ausländerbehörde',
+  description: 'As an EU citizen, you have automatic right to live and work in Germany. After registering your address, you may optionally get a certificate of EU right of residence, but it is no longer mandatory since 2013.',
+  category: 'registration',
+  isMandatory: false,
+  isPremium: false,
+  audience: ['everyone'],
+  originRule: { type: 'eu-only' },
+  sortOrder: 3,
+},
+
+// FAMILY WITH SCHOOL-AGE CHILDREN:
+{
+  id: 'de-school-registration',
+  title: 'Register child at school (Schulanmeldung)',
+  localInstitutionName: 'Grundschule / Gymnasium',
+  description: 'School attendance is compulsory in Germany (Schulpflicht). Register your child at the local public school or an international school.',
+  deadlineDays: 30,
+  category: 'education',
+  isMandatory: true,
+  isPremium: false,
+  audience: ['family-school', 'family-teen'],
+  originRule: { type: 'all' },
+  sortOrder: 20,
+},
+
+// PENSIONER:
+{
+  id: 'de-pension-transfer',
+  title: 'Set up pension receipt in Germany',
+  description: 'Register your foreign pension with the German tax office. Understand the double taxation agreement between your home country and Germany to avoid being taxed twice on pension income.',
+  category: 'banking',
+  isMandatory: false,
+  isPremium: true,  // 💎 PREMIUM
+  audience: ['pensioner'],
+  originRule: { type: 'all' },
+  sortOrder: 15,
+},
+
+// DOG OWNER (Germany-specific):
+{
+  id: 'de-dog-tax',
+  title: 'Register your dog and pay dog tax (Hundesteuer)',
+  localInstitutionName: 'Ordnungsamt / Steueramt',
+  description: 'Germany requires all dog owners to register and pay an annual dog tax. Cost varies by city: €90-180/year for the first dog, more for second+ dogs and certain breeds.',
+  deadlineDays: 14,
+  riskIfMissed: 'Fine up to €10,000 for unregistered dogs.',
+  category: 'legal',
+  isMandatory: true,
+  isPremium: false,
+  audience: ['pet-dog'],
+  originRule: { type: 'all' },
+  sortOrder: 25,
+},
+
+// JOB SEEKER:
+{
+  id: 'de-arbeitsagentur',
+  title: 'Register at the Employment Agency (Arbeitsagentur)',
+  localInstitutionName: 'Agentur für Arbeit',
+  localInstitutionNameTranslation: 'Federal Employment Agency',
+  description: 'Register as a job seeker to access job listings, career counseling, and language courses. Non-EU citizens need a work permit to be employed.',
+  category: 'employment',
+  isMandatory: false,
+  isPremium: false,
+  audience: ['job-seeker'],
+  originRule: { type: 'all' },
+  sortOrder: 18,
+},
+
+// NON-EU JOB SEEKER — Blue Card info:
+{
+  id: 'de-blue-card',
+  title: 'Understand EU Blue Card requirements',
+  description: 'The EU Blue Card allows highly qualified non-EU workers to live and work in Germany. Requirements: recognized degree + job offer with minimum salary of €45,300 (or €41,042 for shortage occupations like IT, engineering, medicine).',
+  category: 'employment',
+  isMandatory: false,
+  isPremium: true,  // 💎 PREMIUM — valuable detailed guide
+  audience: ['employed', 'job-seeker'],
+  originRule: { type: 'non-eu-only' },
+  sortOrder: 19,
+},
+
+// FREELANCER:
+{
+  id: 'de-freelancer-register',
+  title: 'Register as a freelancer at the tax office',
+  localInstitutionName: 'Finanzamt',
+  description: 'Register with the Finanzamt using the Fragebogen zur steuerlichen Erfassung. You will receive your tax number and VAT number. Important: Germany distinguishes between Freiberufler (liberal professions like IT, consulting, arts — no trade tax) and Gewerbetreibender (commercial trades — trade tax applies).',
+  category: 'employment',
+  isMandatory: true,
+  isPremium: true,  // 💎 PREMIUM — full guide
+  audience: ['freelancer'],
+  originRule: { type: 'all' },
+  sortOrder: 16,
+},
+```
+
+---
+
+## DATABASE SCHEMA (Supabase)
+
+```sql
+-- ============================================
+-- USER PROFILES (extends Supabase auth.users)
+-- ============================================
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email VARCHAR(255),
+  display_name VARCHAR(100),
+
+  -- Premium
+  is_premium BOOLEAN DEFAULT false,
+  premium_purchased_at TIMESTAMPTZ,
+  stripe_payment_id VARCHAR(255),
+
+  -- Wizard data (synced from Zustand on registration)
+  destination_country VARCHAR(100),
+  arrival_date DATE,
+  has_arrived BOOLEAN DEFAULT false,
+  home_country VARCHAR(100),
+  nationality VARCHAR(5),              -- ISO code
+  is_eu_citizen BOOLEAN DEFAULT false,
+  has_dual_citizenship BOOLEAN DEFAULT false,
+  second_nationality VARCHAR(5),
+  situation VARCHAR(20),               -- 'single','couple','family','pensioner','student',etc
+  number_of_children INT DEFAULT 0,
+  children_ages INT[],                 -- array: [3, 7, 14]
+  school_preference VARCHAR(20),       -- 'local','international','undecided'
+  has_pension BOOLEAN DEFAULT false,
+  pension_type VARCHAR(20),
+  is_university_student BOOLEAN DEFAULT false,
+  employment_situation VARCHAR(30),
+  has_drivers_license BOOLEAN DEFAULT false,
+  driver_license_country VARCHAR(100),
+  has_pet BOOLEAN DEFAULT false,
+  pet_type VARCHAR(10),
+  priorities TEXT[],
+
+  -- Settings
+  notifications_enabled BOOLEAN DEFAULT true,
+  wizard_completed BOOLEAN DEFAULT false,
+  wizard_completed_at TIMESTAMPTZ,
+
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- TASK PROGRESS
+-- ============================================
+CREATE TABLE user_progress (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  country_slug VARCHAR(100) NOT NULL,
+  task_id VARCHAR(100) NOT NULL,       -- matches ChecklistTask.id
+  is_completed BOOLEAN DEFAULT false,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, country_slug, task_id)
+);
+
+-- ============================================
+-- REMINDER LOG (avoid sending duplicates)
+-- ============================================
+CREATE TABLE reminder_log (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  task_id VARCHAR(100) NOT NULL,
+  reminder_type VARCHAR(10) NOT NULL,  -- '7day', '1day', 'today'
+  sent_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, task_id, reminder_type)
+);
+
+-- ============================================
+-- ROW LEVEL SECURITY
+-- ============================================
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reminder_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own profile" ON profiles FOR ALL USING (id = auth.uid());
+CREATE POLICY "Users manage own progress" ON user_progress FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "Users view own reminders" ON reminder_log FOR SELECT USING (user_id = auth.uid());
+
+-- ============================================
+-- AUTO-CREATE PROFILE ON SIGNUP
+-- ============================================
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO profiles (id, email)
+  VALUES (new.id, new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- ============================================
+-- INDEXES
+-- ============================================
+CREATE INDEX idx_progress_user ON user_progress(user_id);
+CREATE INDEX idx_progress_country ON user_progress(user_id, country_slug);
+CREATE INDEX idx_reminder_user ON reminder_log(user_id);
+```
+
+---
+
+*Continue to Part 2 for content sections, job search, emergency services, lawyers, premium model, and UI design.*
+*Continue to Part 3 for step-by-step Claude Code instructions (10 phases).*

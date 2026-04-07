@@ -1,0 +1,583 @@
+# EXPAT STARTER PACK — DEFINITIVE FINAL PLAN
+# Part 3 of 3: Claude Code Instructions (10 Phases)
+
+Each phase below is a prompt to paste into Claude AI in VS Code.
+Complete each phase fully before starting the next.
+
+---
+
+## PHASE 1: PROJECT SETUP (Day 1-2)
+
+```
+I am building a web application called "Expat Starter Pack" (expatstarterpack.com) — a personalized expat integration assistant.
+
+Create a Next.js 15 project with App Router, TypeScript, and Tailwind CSS 4.
+
+STEP 1 — Initialize project:
+npx create-next-app@latest expatstarterpack --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"
+cd expatstarterpack
+
+STEP 2 — Install all dependencies:
+npm install @supabase/supabase-js @supabase/ssr stripe lucide-react country-flag-icons clsx tailwind-merge class-variance-authority zustand fuse.js framer-motion resend
+
+STEP 3 — Install shadcn/ui:
+npx shadcn@latest init
+(Choose: New York style, Slate base, CSS variables: yes)
+npx shadcn@latest add button card input badge tabs accordion checkbox progress separator toast avatar sheet dialog dropdown-menu tooltip scroll-area radio-group select label
+
+STEP 4 — Set up fonts in app/layout.tsx:
+Import via next/font/google:
+- Fraunces (with opsz axis, subsets: ['latin']) → CSS var --font-heading
+- Outfit (subsets: ['latin']) → CSS var --font-body
+- IBM_Plex_Mono (weights: ['400','500'], subsets: ['latin']) → CSS var --font-mono
+Apply to <html> className.
+
+STEP 5 — Set up color system in globals.css:
+Define CSS custom properties for light and dark mode:
+Light mode:
+  --primary: #1B4332; --secondary: #F5E6D3; --accent: #C84B31;
+  --success: #6B9080; --warning: #E9A319; --danger: #9B2335;
+  --text: #2D3436; --muted: #8E8E8E; --card: #FAF8F5; --bg: #FEFCF9;
+  --premium: #D4A853;
+Dark mode (inside .dark selector):
+  --primary: #6B9080; --secondary: #2D2A26; --accent: #E07A5F;
+  --success: #8FBC8F; --warning: #F0C75E; --danger: #E57373;
+  --text: #E8E4E0; --muted: #9E9E9E; --card: #1E1E1E; --bg: #121212;
+  --premium: #FFD700;
+
+STEP 6 — Root layout (app/layout.tsx):
+- Dark mode: class-based toggle using 'dark' class on <html>
+- Desktop navigation: Logo ("Expat Starter Pack" in Fraunces font) + links: Countries, Pricing, Blog, Login/Profile avatar, dark mode toggle (sun/moon icon)
+- Mobile: hide desktop nav, show sticky bottom navigation bar with 4 tabs:
+  Home (House icon), Countries (Globe icon), My Progress (BarChart icon), Profile (User icon)
+- Footer: About, Privacy, Terms, Contact, Blog, "© 2026 Expat Starter Pack", link to expatcheaprent.com
+
+STEP 7 — Supabase client:
+- src/lib/supabase/client.ts — browser client (createBrowserClient)
+- src/lib/supabase/server.ts — server client (createServerClient with cookies)
+- src/middleware.ts — refresh Supabase auth session on every request
+
+STEP 8 — Zustand store:
+Create src/stores/userProfileStore.ts with Zustand + persist middleware (localStorage).
+Store the full UserProfile interface:
+  destinationCountry, arrivalDate, hasArrived,
+  homeCountry, nationality, isEuCitizen, hasDualCitizenship, secondNationality,
+  situation, numberOfChildren, childrenAges, schoolPreference,
+  hasPension, pensionType, isUniversityStudent,
+  employmentSituation, hasDriversLicense, driverLicenseCountry,
+  hasPet, petType, priorities, wizardCompleted, wizardCompletedAt
+Include actions: setField(key, value), setWizardComplete(), resetProfile()
+
+STEP 9 — EU citizenship detection utility:
+Create src/lib/utils/eu.ts with:
+- EU_COUNTRIES constant (27 ISO codes)
+- EEA_COUNTRIES constant (EU + IS, LI, NO)
+- isEuCitizen(isoCode): boolean
+- isEeaCitizen(isoCode): boolean
+- hasFreeMoveRight(fromIso, toIso): boolean
+
+STEP 10 — Other utilities:
+- src/lib/utils/cn.ts — clsx + tailwind-merge helper
+- src/lib/utils/platform.ts — Capacitor.isNativePlatform() with fallback
+- src/lib/utils/dates.ts — calculateDeadline(arrivalDate, deadlineDays), daysUntil(date), isOverdue(date), formatDate(date)
+
+STEP 11 — next.config.ts:
+const isMobile = process.env.NEXT_PUBLIC_IS_MOBILE === 'true';
+export default { ...(isMobile ? { output: 'export' } : {}), images: { unoptimized: isMobile } };
+
+STEP 12 — .env.local.example:
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_IS_MOBILE=false
+RESEND_API_KEY=
+```
+
+---
+
+## PHASE 2: DATA TYPES & FIRST COUNTRY (Day 2-5)
+
+```
+Create the complete data layer for Expat Starter Pack.
+
+STEP 1 — Create src/data/types.ts:
+Define ALL TypeScript interfaces needed for the entire application.
+Include these interfaces (I will describe each one):
+
+Country: name, slug, isoCode, isoCode3, flagEmoji, capital, region, subregion, officialLanguages, currency (CurrencyInfo), callingCode, emergencyNumber, timezones, population, populationYear, governmentType, drivesOn, description, history, climate, costOfLivingIndex, demographics (DemographicEntry[]), religions (ReligionEntry[]), citizenship (CitizenshipInfo), traditionalFoods (FoodItem[]), traditionalBeverages (BeverageItem[]), holidays (Holiday[]), touristHighlights (TouristHighlight[]), socialCulture (SocialCultureInfo), emergencyServices (EmergencyServices), jobSearchInfo (JobSearchInfo), taxInfo (TaxInfo), businessTypes (BusinessTypeInfo[]), freelancerGuide (FreelancerGuide), payslipExample (PayslipExample), educationInfo (EducationInfo), transportInfo (TransportInfo), priceGuide (PriceGuide), visaInfo (VisaInfo), petRelocationInfo (PetRelocationInfo), professionalServices (ProfessionalServices), leavingCountryInfo (LeavingCountryInfo), dailyLife (DailyLifeInfo), tasks (ChecklistTask[]), alerts (CostlyMistake[])
+
+ChecklistTask: id, title, description, localInstitutionName, localInstitutionNameTranslation, whereToGo, documentsNeeded, estimatedTime, estimatedCost, deadlineDescription, deadlineDays, riskIfMissed, category (TaskCategory), isMandatory, isPremium, sortOrder, tips, externalLinks, notificationText, audience (TaskAudience[]), originRule (OriginRule)
+
+TaskAudience: 'everyone' | 'family' | 'family-toddler' | 'family-preschool' | 'family-school' | 'family-teen' | 'pensioner' | 'student' | 'driver' | 'pet-owner' | 'pet-dog' | 'employed' | 'remote-worker' | 'freelancer' | 'starting-business' | 'job-seeker' | 'not-working'
+
+OriginRule: { type: 'eu-only' | 'non-eu-only' | 'specific-countries' | 'all', countries?: string[], description?: string }
+
+EmergencyServices: generalEmergency, police, fire, ambulance, nonEmergencyPolice, poisonControl, weekendDoctor (WeekendDoctor), mentalHealthHotline, domesticViolenceHotline, childProtectionHotline, roadAssistance, electricityEmergency, gasEmergency, waterEmergency, callingInstructions
+
+JobSearchInfo: publicEmploymentService, jobPlatforms (ServiceProvider[]), expatJobResources, workPermitInfo, workCulture, applicationTips, networkingTips
+
+(Include ALL other interfaces from Part 1 and Part 2 of the plan)
+
+STEP 2 — Create src/data/categories.ts:
+10 task categories: registration, banking, health, housing, communication, transportation, employment, welfare, education, legal
+Each: { slug, name, icon (lucide icon name), color (hex from palette) }
+
+STEP 3 — Create src/lib/checklist/generator.ts:
+The checklist engine function that takes (country: Country, profile: UserProfile) and returns ChecklistTask[].
+Logic:
+- Filter tasks by audience match (check profile.situation, childrenAges, employment, etc.)
+- Filter by originRule (EU vs non-EU based on profile.nationality and country.isoCode)
+- Sort: mandatory first → by deadlineDays ascending → by sortOrder
+(Use the exact generator code from Part 1 of the plan)
+
+STEP 4 — Create src/data/countries/index.ts:
+- Lazy-import all country files
+- Export: getAllCountries(), getCountryBySlug(slug), getCountrySlugs(), searchCountries(query)
+
+STEP 5 — Create src/data/countries/germany.ts:
+COMPLETE data for Germany with ALL fields. This is the template for all other countries.
+
+Include 35+ tasks across ALL audience types:
+- everyone: Anmeldung (14 days, Einwohnermeldeamt), bank account (Deutsche Bank/N26/DKB/Sparkasse/Commerzbank), health insurance (AOK/TK/Barmer), Steuer-ID, SIM card (Telekom/Vodafone/O2/Aldi Talk), Rundfunkbeitrag, Deutschlandticket, find Hausarzt, embassy registration, set up internet
+- non-eu-only: Aufenthaltstitel at Ausländerbehörde (90 days), integration course (Integrationskurs — 600-900 hours mandatory)
+- eu-only: optional Freizügigkeitsbescheinigung (no longer mandatory since 2013)
+- family: register children, apply for Kindergeld (€250/child/month), find Kinderarzt
+- family-toddler: register for Krippe/Kita (enormous waitlists — apply immediately)
+- family-preschool: register for Kindergarten
+- family-school: Schulanmeldung at Grundschule (compulsory), buy Schulranzen
+- family-teen: register at weiterführende Schule (Gymnasium/Realschule/Hauptschule)
+- pensioner: register pension with Finanzamt, understand DE double taxation treaties (PREMIUM), apply for German pension if eligible (PREMIUM)
+- student: register at university, get Semesterticket, student health insurance
+- driver: convert license at Fahrerlaubnisbehörde (6 month limit for non-EU, EU licenses valid), register car (Zulassungsstelle), car insurance (Kfz-Versicherung)
+- pet-dog: register dog + pay Hundesteuer at Ordnungsamt (€90-180/year, 14 days), get dog liability insurance (Hundehaftpflicht)
+- pet-owner: find Tierarzt (vet), register pet
+- employed: understand payslip deductions, register at Sozialversicherung
+- freelancer: register at Finanzamt (Fragebogen zur steuerlichen Erfassung), understand Freiberufler vs Gewerbetreibender, get Gewerbeschein if commercial (PREMIUM)
+- job-seeker: register at Agentur für Arbeit, create German-format Lebenslauf, register on StepStone/Indeed/XING
+- non-eu + job-seeker: EU Blue Card guide (PREMIUM), job seeker visa (PREMIUM)
+
+Include ALL emergency services for Germany:
+- 112 (general), 110 (police), 116117 (Bereitschaftsdienst/weekend doctor)
+- ADAC (road), mental health: TelefonSeelsorge 0800-1110111
+
+Include FULL job search info:
+- Agentur für Arbeit (public), StepStone.de, Indeed.de, XING, LinkedIn, Arbeitsagentur Jobbörse, Glassdoor.de
+- Work culture: 38-40h/week, 20-30 vacation days, Probezeit 6 months
+- CV format: German CV includes photo, DOB, marital status
+
+Include tax info, business types (Einzelunternehmen, GmbH, UG, GbR), freelancer guide, payslip example, education info with prices, transport, prices 2026, visas, pet relocation (Hundesteuer!), lawyers, how to leave Germany, daily life (Aldi/Lidl/Rewe/Edeka, Pfand, Sunday closing, Ruhezeit), alerts, holidays 2026, currency, food, tourism, community.
+```
+
+---
+
+## PHASE 3: ONBOARDING WIZARD (Day 5-7)
+
+```
+Build the onboarding wizard at app/wizard/page.tsx.
+
+Create 5 step components in src/components/wizard/:
+- WizardLayout.tsx — wraps steps with progress indicator, back/continue buttons
+- StepDestination.tsx — country search + arrival date + "already arrived" toggle
+- StepOrigin.tsx — home country/nationality + dual citizenship toggle + auto EU detection
+- StepAboutYou.tsx — situation radio buttons + conditional children/pension/student fields
+- StepEmployment.tsx — employment radio + driver's license + pet questions
+- StepPriorities.tsx — multi-select checkboxes (optional, skippable)
+
+Design requirements:
+- Full-screen steps, one question group per screen
+- Progress dots at top showing current step (1-5)
+- Smooth slide transition between steps (Framer Motion)
+- Large radio buttons / checkboxes (min 48px tap targets)
+- Mobile-first layout
+- Back button (except step 1), Continue button, Skip on step 5
+- Country search uses Fuse.js on country name/code with flag display
+- When nationality selected: automatically calculate and display "EU citizen: ✓/✗"
+- After completion: success screen → redirect to /country/[destinationSlug]
+- All data saved to Zustand store (persists in localStorage)
+- If user is logged in: also sync to Supabase profiles table
+
+Visual style:
+- Warm sand background
+- Large Fraunces headings for step titles
+- Friendly illustrations (can be placeholder colored SVG icons initially)
+- Green "Continue" button using accent color
+- Progress dots: filled = completed, outlined = current, gray = upcoming
+```
+
+---
+
+## PHASE 4: COUNTRY PAGE — 19 SECTIONS (Day 7-12)
+
+```
+Build the main country page at app/country/[slug]/page.tsx.
+
+This is the MOST IMPORTANT page. It has:
+
+1. generateStaticParams() — pre-render all countries at build time
+2. generateMetadata() — dynamic SEO per country
+
+COMPONENTS TO BUILD:
+
+CountryHeader (src/components/country/CountryHeader.tsx):
+- Large flag + country name (H1)
+- SEO description paragraph
+- Stats bar: Capital | Language | Currency | Population | Calling code | Emergency # | Timezone | Drives on
+- Red 🆘 SOS button (opens Emergency tab)
+- Premium badge: "💎 Unlock Premium $2" or "✓ Premium" if paid
+
+ProfileBanner (src/components/country/ProfileBanner.tsx):
+- Shows if wizard completed: "🇳🇱→🇩🇪 Dutch citizen | Family (2 kids, ages 3,7) | Employed | Has car | Has dog"
+- [Edit profile ✏️] button → links to /wizard
+- If wizard not completed: "Personalize your checklist → [Take the quiz]"
+
+SectionTabs (src/components/country/SectionTabs.tsx):
+- 19 horizontal scrollable tabs
+- Each tab: icon + label
+- Premium tabs: icon + label + 💎 (gold diamond)
+- Active tab: accent color bottom border + light background
+- Sticky positioning below header on scroll
+- Mobile: horizontally scrollable, one row
+
+PremiumGate (src/components/shared/PremiumGate.tsx):
+- Wraps premium section content
+- If isPremium: render children normally, no diamond
+- If not isPremium: CSS filter: blur(8px) + pointer-events:none on content
+  PLUS overlay card with lock icon, feature list, and payment CTA
+  On mobile app: "Visit expatstarterpack.com/pricing to unlock"
+- CRITICAL: Content MUST be in DOM for SEO (Google indexes blurred text)
+
+Build ALL 19 section components in src/components/country/:
+1. ChecklistSection.tsx — personalized task list from generator
+2. EmergencySection.tsx — all emergency numbers, weekend doctor, SOS info
+3. CountryProfileSection.tsx — history, demographics, religions, climate, food/tourism highlights
+4. HolidaysSection.tsx — 2026 holidays table
+5. CurrencySection.tsx — currency info, payment culture
+6. DocumentsSection.tsx — interactive document checklist with checkboxes
+7. TransportSection.tsx — public transit, taxis, trains, cycling, driving
+8. DailyLifeSection.tsx — supermarkets, recycling, opening hours, dining basics
+9. AlertsSection.tsx — costly mistake warning cards (PREMIUM)
+10. JobSearchSection.tsx — employment agency, job platforms, work culture (PREMIUM)
+11. TaxBusinessSection.tsx — tax brackets, company types, freelancer guide, payslip (PREMIUM)
+12. EducationSection.tsx — childcare, schools, university, language courses (PREMIUM)
+13. CitizenshipSection.tsx — residency, citizenship, dual citizenship (PREMIUM)
+14. VisaSection.tsx — visa types, digital nomad visa, Blue Card (PREMIUM)
+15. LawyersSection.tsx — find lawyer/accountant/notary by category (PREMIUM)
+16. LeavingSection.tsx — deregistration, tax clearance, pension portability (PREMIUM)
+17. PetRelocationSection.tsx — import rules, vet info, dog tax (PREMIUM)
+18. PricesSection.tsx — comprehensive 2026 price tables (PREMIUM)
+19. CommunitySection.tsx — expat groups, language exchange, social norms (PREMIUM)
+```
+
+---
+
+## PHASE 5: HOMEPAGE & COUNTRY BROWSER (Day 12-13)
+
+```
+Build the homepage (app/page.tsx):
+- Hero: H1 "Your Personalized Guide to Starting a New Life Abroad"
+  Subtitle: "Tell us who you are, where you're going, and we'll create your custom checklist."
+  [Start the Quiz →] button → links to /wizard
+  OR country search bar for users who want to browse first
+- How it works: 3 steps (Take the quiz → Get your checklist → Complete tasks with reminders)
+- Featured countries grid (10 cards)
+- What's included (feature highlights)
+- Premium CTA
+- SEO metadata
+
+Build the countries browser (app/countries/page.tsx):
+- Search with Fuse.js
+- Region filter: All | Europe | Asia-Pacific | Americas | Africa | Middle East
+- Country cards: flag + name + capital + region + task count
+- Click → /country/[slug]
+```
+
+---
+
+## PHASE 6: MORE COUNTRY DATA (Day 13-18)
+
+```
+Create complete data files for these countries (same structure as germany.ts, ALL sections):
+
+1. Netherlands — BSN, DigiD, gemeente, BV/eenmanszaak, 30% ruling, OV-chipkaart, kinderopvang, huisartsenpost (1733 → 0900-1515 now), VDAB-equivalent: UWV, job platforms: Indeed.nl/LinkedIn/Nationale Vacaturebank/Undutchables
+2. Belgium — commune/gemeente, eID, mutualiteit/mutuelle, VDAB (Flemish)/Actiris (Brussels)/Forem (Walloon), Wachtpost (1733), STIB/MIVB/De Lijn/TEC, Delhaize/Colruyt/Aldi
+3. United Kingdom — NI number, NHS/GP registration, council tax, Oyster/TfL, HMRC, Ltd company, Jobcentre Plus, NHS 111, Indeed.co.uk/Reed/Totaljobs
+4. Australia — TFN, Medicare, ABN, Centrelink, Opal card, Seek.com.au, Healthdirect 1800 022 222
+5. Spain — NIE, empadronamiento, autónomo, Beckham Law, SEPE (employment), 112 emergency
+6. France — carte de séjour, Sécurité Sociale, auto-entrepreneur, Pôle Emploi, SOS Médecins 3624
+7. Portugal — NIF, NISS, NHR regime, D7 visa, SNS health, IEFP (employment)
+8. Canada — SIN, OHIP/MSP provincial health, federal/provincial tax, Service Canada
+9. Switzerland — mandatory health insurance (3 months!), AHV, GmbH/AG, SBB, RAV (employment)
+10. United States — SSN, W-4, state taxes, health insurance marketplace, USCIS, 911
+
+For each country include:
+- 30-40 tasks with audience targeting and origin rules (EU vs non-EU)
+- Emergency services with weekend doctor and local name
+- Job search section with government agency AND private platforms
+- All other sections fully populated
+```
+
+---
+
+## PHASE 7: AUTHENTICATION (Day 18-19)
+
+```
+Set up Supabase authentication:
+- Login page (email/password + Google OAuth)
+- Signup page (email + Google)
+- Database trigger: auto-create profile row on signup
+- After signup/login: check if wizard completed → if not, redirect to /wizard
+- If wizard was completed as guest (localStorage): sync Zustand data to Supabase profile
+- Profile page: wizard summary, premium status, progress, edit profile, notification toggle, logout
+- AuthContext + useAuth hook: user, isLoggedIn, isPremium, loading
+- Checking tasks requires login (show modal if not logged in)
+- middleware.ts: refresh session
+```
+
+---
+
+## PHASE 8: PREMIUM & STRIPE (Day 19-21)
+
+```
+Set up $2 one-time payment via Stripe (WEBSITE ONLY):
+
+1. app/api/stripe/checkout/route.ts:
+   mode: 'payment', amount: 200 ($2.00 USD)
+   success_url: /profile?payment=success
+   metadata: { userId }
+
+2. app/api/stripe/webhook/route.ts:
+   checkout.session.completed → UPDATE profiles SET is_premium=true, premium_purchased_at=now(), stripe_payment_id=...
+
+3. Pricing page: free vs premium comparison, $2 CTA button, FAQ
+   On mobile: "Visit expatstarterpack.com/pricing to unlock"
+
+4. PremiumGate component: blur + overlay + CTA (web: Stripe, mobile: link to website)
+
+5. Profile page: show premium badge or upgrade CTA
+```
+
+---
+
+## PHASE 9: PROGRESS TRACKING & REMINDERS (Day 21-23)
+
+```
+PROGRESS:
+- useProgress hook: fetchProgress, toggleTask, getCompletionPercentage
+- TaskCard checkbox: toggle → upsert user_progress in Supabase
+- If not logged in: show "Log in to track progress" modal
+- Progress bar on checklist section
+- Profile page: progress per country
+
+REMINDERS:
+- app/api/reminders/route.ts (protected by cron secret):
+  1. Query users with notifications_enabled=true
+  2. For each: generate checklist, calculate deadlines
+  3. Find tasks due in 7 days / 1 day / today that are incomplete
+  4. Check reminder_log to avoid duplicates
+  5. Send via Resend
+  6. Log sent reminders
+- Vercel Cron config: vercel.json → runs daily at 8:00 UTC
+- Profile page: toggle notifications on/off
+```
+
+---
+
+## PHASE 10: CAPACITOR + SEO + POLISH (Day 23-28)
+
+```
+CAPACITOR ANDROID:
+- npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/haptics @capacitor/splash-screen
+- npx cap init "Expat Starter Pack" "com.expatstarterpack.app" --web-dir out
+- npx cap add android
+- Build scripts: build:mobile, cap:sync, cap:android
+- Splash screen + icon assets
+- Safe area handling
+- Platform detection for premium gate
+
+SEO:
+- sitemap.ts: all country URLs + homepage + pricing + blog
+- robots.ts
+- Dynamic OG images per country (@vercel/og)
+- Structured data: BreadcrumbList, FAQPage, HowTo per country
+- Per-country meta: "Moving to [Country] as an Expat — Complete Guide 2026"
+
+SEARCH:
+- Global search page using Fuse.js across countries + tasks + services
+- Search bar in nav
+- Cmd+K keyboard shortcut (optional)
+
+POLISH:
+- Dark mode toggle
+- Loading skeletons
+- Error boundaries
+- 404 page with search
+- Cookie consent (GDPR)
+- Print stylesheet for checklist
+- PWA manifest.json
+- Blog with 3 SEO starter posts
+- Accessibility: ARIA labels, keyboard nav, color contrast WCAG AA
+- Scroll-triggered animations (Framer Motion / CSS)
+- Task completion micro-interaction (green pulse)
+- Share button (Web Share API)
+- "Report outdated info" per task
+```
+
+---
+
+## POST-LAUNCH ROADMAP
+
+**Month 2-3:**
+- Multi-language (DE, ES, FR, NL, PT)
+- Country comparison tool
+- expatcheaprent.com integration
+- Community voting on task helpfulness
+
+**Month 4-6:**
+- City-level guides
+- AI chatbot (Claude API)
+- Cost of living calculator
+- Partner integrations (Wise, N26)
+- iOS app
+
+**Month 7-12:**
+- Expat forum
+- Corporate tier for relocation companies
+- Document translation service
+- Visa application tracker
+
+---
+
+## FILE STRUCTURE (COMPLETE)
+
+```
+src/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx                         # Homepage
+│   ├── globals.css
+│   ├── wizard/page.tsx                  # Onboarding wizard
+│   ├── country/[slug]/page.tsx          # Country page (19 tabs)
+│   ├── countries/page.tsx               # Browse all
+│   ├── search/page.tsx                  # Global search
+│   ├── pricing/page.tsx                 # Premium
+│   ├── login/page.tsx
+│   ├── signup/page.tsx
+│   ├── profile/page.tsx
+│   ├── blog/page.tsx
+│   ├── blog/[slug]/page.tsx
+│   ├── about/page.tsx
+│   ├── privacy/page.tsx
+│   ├── terms/page.tsx
+│   ├── api/stripe/checkout/route.ts
+│   ├── api/stripe/webhook/route.ts
+│   ├── api/reminders/route.ts
+│   ├── api/og/route.tsx
+│   ├── sitemap.ts
+│   └── robots.ts
+│
+├── components/
+│   ├── ui/                              # shadcn
+│   ├── layout/
+│   │   ├── Navbar.tsx
+│   │   ├── MobileBottomNav.tsx
+│   │   ├── Footer.tsx
+│   │   └── DarkModeToggle.tsx
+│   ├── wizard/
+│   │   ├── WizardLayout.tsx
+│   │   ├── StepDestination.tsx
+│   │   ├── StepOrigin.tsx
+│   │   ├── StepAboutYou.tsx
+│   │   ├── StepEmployment.tsx
+│   │   └── StepPriorities.tsx
+│   ├── country/
+│   │   ├── CountryHeader.tsx
+│   │   ├── ProfileBanner.tsx
+│   │   ├── SectionTabs.tsx
+│   │   ├── SOSButton.tsx
+│   │   ├── ChecklistSection.tsx
+│   │   ├── TaskCard.tsx
+│   │   ├── EmergencySection.tsx
+│   │   ├── CountryProfileSection.tsx
+│   │   ├── HolidaysSection.tsx
+│   │   ├── CurrencySection.tsx
+│   │   ├── DocumentsSection.tsx
+│   │   ├── TransportSection.tsx
+│   │   ├── DailyLifeSection.tsx
+│   │   ├── AlertsSection.tsx
+│   │   ├── JobSearchSection.tsx
+│   │   ├── TaxBusinessSection.tsx
+│   │   ├── EducationSection.tsx
+│   │   ├── CitizenshipSection.tsx
+│   │   ├── VisaSection.tsx
+│   │   ├── LawyersSection.tsx
+│   │   ├── LeavingSection.tsx
+│   │   ├── PetRelocationSection.tsx
+│   │   ├── PricesSection.tsx
+│   │   └── CommunitySection.tsx
+│   └── shared/
+│       ├── PremiumGate.tsx
+│       ├── PremiumBadge.tsx
+│       ├── FlagIcon.tsx
+│       ├── DeadlineBadge.tsx
+│       ├── CategoryBadge.tsx
+│       ├── ServiceCard.tsx
+│       ├── ProgressRing.tsx
+│       ├── CountrySearch.tsx
+│       └── LoadingSkeleton.tsx
+│
+├── stores/
+│   └── userProfileStore.ts             # Zustand + localStorage
+│
+├── lib/
+│   ├── checklist/
+│   │   └── generator.ts                # Dynamic checklist engine
+│   ├── supabase/
+│   │   ├── client.ts
+│   │   ├── server.ts
+│   │   └── middleware.ts
+│   ├── stripe/stripe.ts
+│   ├── email/reminders.ts
+│   └── utils/
+│       ├── cn.ts
+│       ├── eu.ts                        # EU/EEA citizen detection
+│       ├── platform.ts
+│       └── dates.ts
+│
+├── hooks/
+│   ├── useAuth.ts
+│   ├── useProgress.ts
+│   ├── usePremium.ts
+│   └── useChecklist.ts                 # Uses generator + Zustand profile
+│
+├── contexts/
+│   └── AuthContext.tsx
+│
+├── data/
+│   ├── types.ts                         # ALL interfaces
+│   ├── categories.ts                    # 10 task categories
+│   └── countries/
+│       ├── index.ts
+│       ├── germany.ts                   # Template country
+│       ├── netherlands.ts
+│       ├── belgium.ts
+│       ├── united-kingdom.ts
+│       ├── australia.ts
+│       ├── spain.ts
+│       ├── france.ts
+│       ├── portugal.ts
+│       ├── canada.ts
+│       ├── switzerland.ts
+│       ├── united-states.ts
+│       └── ... (195 total)
+│
+└── types/
+    └── index.ts
+```
+
+---
+
+*This completes the 3-part plan. Use Part 1 for architecture reference, Part 2 for content reference, and Part 3 Phase-by-Phase for Claude Code instructions.*
