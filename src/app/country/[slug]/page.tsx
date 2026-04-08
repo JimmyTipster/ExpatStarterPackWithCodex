@@ -26,7 +26,7 @@ export default async function CountryPage({ params }: CountryPageProps) {
       primaryCtaHref="/countries"
       primaryCtaLabel="Back to countries"
       secondaryCtaHref="/wizard"
-      secondaryCtaLabel="Open wizard placeholder"
+      secondaryCtaLabel="Edit onboarding answers"
     />
   );
 }

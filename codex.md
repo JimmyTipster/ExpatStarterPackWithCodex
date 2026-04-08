@@ -4,7 +4,7 @@
 
 - Name: Expat Starter Pack
 - Domain target: `expatstarterpack.com`
-- Current implementation status: Phase 1 completed, Phase 2 completed
+- Current implementation status: Phase 1 completed, Phase 2 completed, Phase 3 completed
 
 ## What Was Done
 
@@ -37,6 +37,35 @@
   - `npm.cmd run lint`
   - `npm.cmd run build`
 
+### Phase 3
+
+- Re-checked the wizard requirements in `part3.txt` before implementation.
+- Replaced the `/wizard` placeholder with a real 5-step onboarding flow.
+- Added shared wizard UI in:
+  - `src/components/wizard/WizardLayout.tsx`
+  - `src/components/wizard/CountrySearchField.tsx`
+  - `src/components/wizard/WizardChoiceCard.tsx`
+- Added the five step components:
+  - `src/components/wizard/StepDestination.tsx`
+  - `src/components/wizard/StepOrigin.tsx`
+  - `src/components/wizard/StepAboutYou.tsx`
+  - `src/components/wizard/StepEmployment.tsx`
+  - `src/components/wizard/StepPriorities.tsx`
+- Added `src/components/wizard/WizardFlow.tsx` to:
+  - drive the multi-step state
+  - validate inputs
+  - animate transitions with Framer Motion
+  - persist everything through the existing Zustand store
+  - show a success screen
+  - redirect to `/country/[destinationSlug]`
+- Added `src/lib/countries/reference.ts` so origin, nationality, and driver-license pickers can use a broad ISO country list even though the supported destination registry currently only contains Germany.
+- Kept destination selection tied to the real supported-country registry, so the wizard only routes to valid country pages.
+- Added best-effort Supabase profile syncing on completion when auth and env config are present.
+- Updated the country placeholder CTA text to reflect that the wizard is now live.
+- Verified again with:
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+
 ## Important Repo Notes
 
 - On this Windows setup, use `npm.cmd` and `npx.cmd`, not plain `npm` or `npx`, because PowerShell script execution can block the `.ps1` shims.
@@ -53,31 +82,29 @@
   - origin-specific rules
 - Current country registry only includes:
   - `germany`
+- The onboarding wizard now uses:
+  - supported destination countries from `src/data/countries/index.ts`
+  - reference ISO country options from `src/lib/countries/reference.ts` for origin-related searches
 
 ## What Needs To Happen Next
 
 ### Immediate next phase target
 
-- Phase 3: build the onboarding wizard at `src/app/wizard/page.tsx` with:
-  - `WizardLayout.tsx`
-  - `StepDestination.tsx`
-  - `StepOrigin.tsx`
-  - `StepAboutYou.tsx`
-  - `StepEmployment.tsx`
-  - `StepPriorities.tsx`
+- Phase 4: replace the country placeholder page with the real 19-section country experience for Germany first.
 
-### Expectations for Phase 3
+### Expectations for Phase 4
 
-- Use the existing Zustand `UserProfile` store instead of inventing a new profile source.
-- Use the real country registry for destination and nationality selection.
-- Auto-calculate EU citizen state from the chosen nationality.
-- Persist wizard progress to localStorage through Zustand.
-- Redirect completion to `/country/[destinationSlug]`.
-- Keep the UI mobile-first and aligned with the existing warm editorial visual system.
-
-### After Phase 3
-
-- Phase 4 should replace the country placeholder page with the real 19-tab country experience using Germany as the first fully rendered country.
+- Build the first actual country page at `src/app/country/[slug]/page.tsx`.
+- Add:
+  - `CountryHeader`
+  - `ProfileBanner`
+  - `SectionTabs`
+  - `PremiumGate`
+  - the section components starting with checklist, emergency, profile, holidays, currency, documents, transport, and daily life
+- Use the existing wizard output and `generateChecklist()` to personalize the checklist section.
+- Keep premium content in the DOM even when blurred so the later SEO requirement still holds.
+- Preserve static generation with `generateStaticParams()`.
+- Use Germany as the first fully rendered country and keep the component shape ready for additional countries later.
 
 ## Files To Remember
 
@@ -88,4 +115,6 @@
 - `src/data/countries/germany.ts`
 - `src/lib/checklist/generator.ts`
 - `src/app/wizard/page.tsx`
+- `src/components/wizard/WizardFlow.tsx`
+- `src/lib/countries/reference.ts`
 - `src/app/country/[slug]/page.tsx`

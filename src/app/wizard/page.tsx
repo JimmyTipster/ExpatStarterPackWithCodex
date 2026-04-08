@@ -1,15 +1,37 @@
-import { PlaceholderPage } from "@/components/shared/PlaceholderPage";
+import type { Metadata } from "next";
 
-export default function WizardPage() {
+import { WizardFlow } from "@/components/wizard/WizardFlow";
+import { getAllCountries } from "@/data/countries";
+import { getReferenceCountries } from "@/lib/countries/reference";
+
+export const metadata: Metadata = {
+  title: "Onboarding Wizard | Expat Starter Pack",
+  description:
+    "Answer a few practical questions and get a personalized relocation checklist for your move abroad.",
+};
+
+export default async function WizardPage() {
+  const [destinationCountries, referenceCountries] = await Promise.all([
+    getAllCountries(),
+    getReferenceCountries(),
+  ]);
+  const referenceCountryByIso = new Map(
+    referenceCountries.map((country) => [country.isoCode, country]),
+  );
+
   return (
-    <PlaceholderPage
-      eyebrow="Wizard"
-      title="The onboarding wizard starts in Phase 3."
-      description="This placeholder route keeps the main call-to-action live while the branded multi-step flow is still to come. The persisted user profile store is already available under the hood."
-      primaryCtaHref="/profile"
-      primaryCtaLabel="View profile placeholder"
-      secondaryCtaHref="/countries"
-      secondaryCtaLabel="Browse countries"
+    <WizardFlow
+      destinationCountries={destinationCountries.map((country) => ({
+        name: country.name,
+        slug: country.slug,
+        isoCode: country.isoCode,
+        isoCode3: country.isoCode3,
+        flagEmoji: referenceCountryByIso.get(country.isoCode)?.flagEmoji ?? country.flagEmoji,
+        capital: country.capital,
+        region: country.region,
+        subregion: country.subregion,
+      }))}
+      referenceCountries={referenceCountries}
     />
   );
 }
