@@ -1,15 +1,20 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
 import { DarkModeToggle } from "@/components/layout/DarkModeToggle";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { href: "/countries", label: "Countries" },
+  { href: "/search", label: "Search" },
   { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
 ];
 
 export function Navbar() {
+  const { isLoggedIn } = useAuth();
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
@@ -42,7 +47,7 @@ export function Navbar() {
             asChild
             className="rounded-full bg-[var(--accent)] px-5 text-[var(--accent-foreground)] hover:bg-[color-mix(in_srgb,var(--accent)_88%,black)]"
           >
-            <Link href="/login">Login</Link>
+            <Link href={isLoggedIn ? "/profile" : "/login"}>{isLoggedIn ? "Profile" : "Login"}</Link>
           </Button>
         </div>
       </div>

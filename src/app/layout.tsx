@@ -5,8 +5,10 @@ import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Navbar } from "@/components/layout/Navbar";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { CookieConsentBanner } from "@/components/layout/CookieConsentBanner";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 import "./globals.css";
 
@@ -50,16 +52,19 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider>
-            <div className="relative flex min-h-screen flex-col overflow-x-hidden">
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top_left,rgba(245,230,211,0.9),transparent_58%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(107,144,128,0.18),transparent_58%)]" />
-              <Navbar />
-              <main className="relative z-10 flex-1 pb-24 md:pb-0">{children}</main>
-              <Footer />
-              <MobileBottomNav />
-            </div>
-            <Toaster richColors />
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top_left,rgba(245,230,211,0.9),transparent_58%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(107,144,128,0.18),transparent_58%)]" />
+                <Navbar />
+                <main className="relative z-10 flex-1 pb-24 md:pb-0">{children}</main>
+                <Footer />
+                <MobileBottomNav />
+                <CookieConsentBanner />
+              </div>
+              <Toaster richColors />
+            </TooltipProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

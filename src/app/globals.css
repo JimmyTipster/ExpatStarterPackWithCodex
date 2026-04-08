@@ -169,3 +169,27 @@
       var(--background);
   }
 }
+
+@media print {
+  header,
+  footer,
+  [data-mobile-nav],
+  button,
+  a[href^="mailto:"],
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  main {
+    padding-bottom: 0 !important;
+  }
+
+  .print-break-avoid {
+    break-inside: avoid;
+  }
+}

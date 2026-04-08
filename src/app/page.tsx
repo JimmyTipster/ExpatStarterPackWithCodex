@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Compass, Globe2, ShieldAlert, Wallet } from "lucide-react";
 
 import { getAllCountries } from "@/data/countries";
+import { CountrySearch } from "@/components/shared/CountrySearch";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,15 +52,30 @@ const highlights = [
 ];
 
 export default async function Home() {
-  const featuredCountries = (await getAllCountries()).slice(0, 4).map((country) => ({
+  const countries = await getAllCountries();
+  const featuredCountries = countries.slice(0, 6).map((country) => ({
     slug: country.slug,
-    flag: country.isoCode,
+    isoCode: country.isoCode,
     name: country.name,
     note: country.description,
   }));
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How Expat Starter Pack helps you move abroad",
+    step: [
+      { "@type": "HowToStep", name: "Take the quiz" },
+      { "@type": "HowToStep", name: "Get your personalized checklist" },
+      { "@type": "HowToStep", name: "Track your move progress" },
+    ],
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <section className="grid gap-8 rounded-[2rem] border border-border/80 bg-card/90 p-8 shadow-[0_24px_80px_rgba(45,52,54,0.08)] backdrop-blur md:grid-cols-[1.15fr_0.85fr] md:p-12">
         <div className="space-y-6">
           <span className="inline-flex rounded-full border border-primary/15 bg-primary/8 px-4 py-1 text-xs font-medium uppercase tracking-[0.25em] text-primary">
@@ -93,27 +109,26 @@ export default async function Home() {
 
         <Card className="border-border/70 bg-background/80 shadow-none">
           <CardHeader className="space-y-3">
-            <CardTitle className="font-heading text-2xl">Phase 1 is live</CardTitle>
+            <CardTitle className="font-heading text-2xl">The platform is taking shape</CardTitle>
             <CardDescription className="text-sm leading-7 text-muted-foreground">
-              The project now has its design system, app shell, route scaffold,
-              Supabase-ready utilities, and persisted onboarding profile store in
-              place.
+              The wizard, country browser, launch-country data layer, personalized checklist engine,
+              premium gating, and auth-ready profile shell are now connected end to end.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <div className="grid gap-3">
               <div className="rounded-2xl border border-border/70 bg-card p-4">
-                <p className="font-medium text-foreground">Next milestone</p>
+                <p className="font-medium text-foreground">What you can do now</p>
                 <p className="mt-1 leading-6">
-                  Phase 2 adds the country data model, task categories, checklist
-                  engine, and the first complete country file.
+                  Complete the onboarding flow, open a country guide, and see your checklist adapt
+                  to your move profile.
                 </p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-card p-4">
-                <p className="font-medium text-foreground">Why this matters</p>
+                <p className="font-medium text-foreground">What is expanding next</p>
                 <p className="mt-1 leading-6">
-                  The shell is already set up for the wizard, country pages,
-                  premium gating, and mobile-friendly navigation.
+                  More country detail, account sync, premium checkout, reminders, and SEO layers
+                  continue building on the same product spine.
                 </p>
               </div>
             </div>
@@ -158,7 +173,7 @@ export default async function Home() {
                 <CardHeader className="space-y-3">
                   <div className="flex items-center gap-3">
                     <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-secondary font-mono text-sm text-primary">
-                      {country.flag}
+                      {country.isoCode}
                     </span>
                     <CardTitle className="font-heading text-2xl">
                       {country.name}
@@ -172,6 +187,28 @@ export default async function Home() {
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="space-y-6">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.22em] text-primary">
+            Browse first
+          </p>
+          <h2 className="mt-2 font-heading text-3xl text-foreground">
+            Jump into a destination before you take the quiz
+          </h2>
+        </div>
+        <CountrySearch
+          countries={countries.map((country) => ({
+            slug: country.slug,
+            name: country.name,
+            isoCode: country.isoCode,
+            capital: country.capital,
+            region: country.region,
+            taskCount: country.tasks.length,
+            description: country.description,
+          }))}
+        />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-3">
@@ -201,12 +238,11 @@ export default async function Home() {
               Premium direction
             </p>
             <h2 className="mt-2 font-heading text-3xl">
-              A lightweight product shell with room to grow.
+              Premium deepens the guidance once the basics are covered.
             </h2>
             <p className="mt-3 text-sm leading-7 text-white/80">
-              The branded Phase 1 foundation is ready for the wizard, checklist
-              engine, the first country dataset, premium gating, and country content rollout in the next
-              phases.
+              Free sections keep the essentials available, while premium expands the legal, tax,
+              education, visa, price, and community detail across each country guide.
             </p>
           </div>
           <Button

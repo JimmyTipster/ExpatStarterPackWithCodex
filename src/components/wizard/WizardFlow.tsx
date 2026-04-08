@@ -20,8 +20,7 @@ import type { WizardCountryOption } from "@/components/wizard/types";
 import { WizardLayout } from "@/components/wizard/WizardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
-import { getSupabaseConfig } from "@/lib/supabase/config";
+import { syncProfileToSupabase } from "@/lib/supabase/profileSync";
 import { isEuCitizen as isEuCountryCode } from "@/lib/utils/eu";
 import {
   useUserProfileStore,
@@ -98,63 +97,6 @@ function getProfileSnapshot() {
     wizardCompleted: state.wizardCompleted,
     wizardCompletedAt: state.wizardCompletedAt,
   };
-}
-
-async function syncProfileToSupabase(profile: ReturnType<typeof getProfileSnapshot>) {
-  const { isConfigured } = getSupabaseConfig();
-
-  if (!isConfigured) {
-    return;
-  }
-
-  try {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return;
-    }
-
-    const payload = {
-      id: user.id,
-      destination_country: profile.destinationCountry || null,
-      arrival_date: profile.arrivalDate || null,
-      has_arrived: profile.hasArrived,
-      home_country: profile.homeCountry || null,
-      nationality: profile.nationality || null,
-      is_eu_citizen: profile.isEuCitizen,
-      has_dual_citizenship: profile.hasDualCitizenship,
-      second_nationality: profile.secondNationality || null,
-      situation: profile.situation,
-      number_of_children: profile.numberOfChildren,
-      children_ages: profile.childrenAges,
-      school_preference: profile.schoolPreference,
-      has_pension: profile.hasPension,
-      pension_type: profile.pensionType || null,
-      is_university_student: profile.isUniversityStudent,
-      employment_situation: profile.employmentSituation,
-      has_drivers_license: profile.hasDriversLicense,
-      driver_license_country: profile.driverLicenseCountry || null,
-      has_pet: profile.hasPet,
-      pet_type: profile.petType || null,
-      priorities: profile.priorities,
-      wizard_completed: profile.wizardCompleted,
-      wizard_completed_at: profile.wizardCompletedAt || null,
-      profile_data: profile,
-    };
-
-    const { error } = await supabase.from("profiles").upsert(payload, {
-      onConflict: "id",
-    });
-
-    if (error) {
-      console.warn("Profile sync will be finalized in Phase 7:", error.message);
-    }
-  } catch (error) {
-    console.warn("Skipping Supabase profile sync during onboarding:", error);
-  }
 }
 
 export function WizardFlow({

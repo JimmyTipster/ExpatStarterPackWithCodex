@@ -10,14 +10,17 @@ const items = [
   { href: "/", label: "Home", icon: House },
   { href: "/countries", label: "Countries", icon: Globe2 },
   { href: "/profile", label: "My Progress", icon: BarChart3 },
-  { href: "/login", label: "Profile", icon: UserRound },
+  { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/92 px-2 py-2 backdrop-blur md:hidden">
+    <nav
+      data-mobile-nav
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/92 px-2 py-2 backdrop-blur md:hidden"
+    >
       <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
         {items.map((item) => {
           const Icon = item.icon;

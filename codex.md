@@ -4,7 +4,8 @@
 
 - Name: Expat Starter Pack
 - Domain target: `expatstarterpack.com`
-- Current implementation status: Phase 1 completed, Phase 2 completed, Phase 3 completed
+- Current implementation status: core web phases 1 through 10 are implemented
+- Platform direction: web-first only for now; Capacitor was removed and deferred until later
 
 ## What Was Done
 
@@ -118,3 +119,57 @@
 - `src/components/wizard/WizardFlow.tsx`
 - `src/lib/countries/reference.ts`
 - `src/app/country/[slug]/page.tsx`
+
+## Phase 4 To 10 Update
+
+### Phase 4
+
+- Built the real 19-section country guide experience in `src/app/country/[slug]/page.tsx`.
+- Added the country section component set under `src/components/country/`.
+- Added share support and task-level "report outdated info" actions.
+
+### Phase 5
+
+- Reworked the homepage and countries browser into the real web app entry surfaces.
+- Added homepage structured data for SEO.
+
+### Phase 6
+
+- Added launch-country seed datasets for Netherlands, Belgium, United Kingdom, Australia, Spain, France, Portugal, Canada, Switzerland, and United States.
+- Added `src/data/countries/factory.ts` to keep seeded country structure consistent.
+
+### Phase 7
+
+- Added `AuthContext`, auth hooks, login, signup, and profile pages.
+- Added guest-to-account profile syncing.
+- Added Google OAuth trigger support.
+- Fixed notifications so the profile toggle now persists to Supabase when configured.
+
+### Phase 8
+
+- Added Stripe checkout and webhook routes.
+- Reworked pricing into a real page with CTA and FAQ.
+- Premium gating keeps content in the DOM while blurred for SEO.
+
+### Phase 9
+
+- Added progress tracking, Supabase sync for logged-in users, reminder email generation helpers, and cron route support.
+
+### Phase 10
+
+- Implemented the web-focused polish work and intentionally skipped Capacitor.
+- Added sitemap, robots, manifest, OG image route, not-found page, loading state, and global error boundary.
+- Upgraded search to include countries, tasks, and key service entries.
+- Added cookie consent, print support, and starter blog content with three posts.
+- Added structured data to home, pricing, country pages, and blog posts.
+
+## Current Verification
+
+- `npm.cmd run lint` passes.
+- `npm.cmd run build` passes.
+
+## Current Follow-Up Direction
+
+- Deepen country data beyond the current seeded launch set.
+- Tighten Supabase schema assumptions with real migrations once backend setup begins.
+- Expand editorial content and production deployment wiring.

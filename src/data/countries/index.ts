@@ -3,7 +3,21 @@ import Fuse from "fuse.js";
 import type { Country } from "@/data/types";
 
 const COUNTRY_LOADERS = {
+  australia: () => import("@/data/countries/australia").then((module) => module.australia),
+  belgium: () => import("@/data/countries/belgium").then((module) => module.belgium),
+  canada: () => import("@/data/countries/canada").then((module) => module.canada),
+  france: () => import("@/data/countries/france").then((module) => module.france),
   germany: () => import("@/data/countries/germany").then((module) => module.germany),
+  netherlands: () =>
+    import("@/data/countries/netherlands").then((module) => module.netherlands),
+  portugal: () => import("@/data/countries/portugal").then((module) => module.portugal),
+  spain: () => import("@/data/countries/spain").then((module) => module.spain),
+  switzerland: () =>
+    import("@/data/countries/switzerland").then((module) => module.switzerland),
+  "united-kingdom": () =>
+    import("@/data/countries/united-kingdom").then((module) => module.unitedKingdom),
+  "united-states": () =>
+    import("@/data/countries/united-states").then((module) => module.unitedStates),
 } as const;
 
 type CountrySlug = keyof typeof COUNTRY_LOADERS;

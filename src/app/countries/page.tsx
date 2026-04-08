@@ -1,7 +1,5 @@
-import Link from "next/link";
-
 import { getAllCountries } from "@/data/countries";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CountrySearch } from "@/components/shared/CountrySearch";
 
 export default async function CountriesPage() {
   const countries = await getAllCountries();
@@ -14,27 +12,22 @@ export default async function CountriesPage() {
         </p>
         <h1 className="font-heading text-4xl text-foreground">Country browser</h1>
         <p className="max-w-3xl text-base leading-8 text-muted-foreground">
-          Phase 2 now loads the first real country dataset. Search and broader rollout
-          will expand as more countries are added.
+          Browse the current launch-country set, filter by region, and jump straight into the
+          country guide that matches your move.
         </p>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {countries.map((country) => (
-          <Link key={country.slug} href={`/country/${country.slug}`} className="group">
-            <Card className="h-full border-border/70 bg-card/90 transition-transform duration-200 group-hover:-translate-y-1 group-hover:border-primary/30">
-              <CardHeader className="space-y-3">
-                <CardTitle className="font-heading text-2xl">{country.name}</CardTitle>
-                <CardDescription className="space-y-1 text-sm leading-7 text-muted-foreground">
-                  <span className="block">Capital: {country.capital}</span>
-                  <span className="block">Region: {country.region}</span>
-                  <span className="block">Tasks loaded: {country.tasks.length}</span>
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <CountrySearch
+        countries={countries.map((country) => ({
+          slug: country.slug,
+          name: country.name,
+          isoCode: country.isoCode,
+          capital: country.capital,
+          region: country.region,
+          taskCount: country.tasks.length,
+          description: country.description,
+        }))}
+        showRegionFilter
+      />
     </div>
   );
 }
